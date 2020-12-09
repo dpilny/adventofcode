@@ -14,11 +14,11 @@ type Instruction struct {
 }
 
 type Program struct {
-	Code         []Instruction
-	VisitedLines map[int]bool
-	Acc          int
-	CurrentLine  int
-	LastLine     int
+	Code              []Instruction
+	VisitedLines      map[int]bool
+	Acc               int
+	CurrentLine       int
+	LastManipulatedOp int
 }
 
 func parseInstruction(line string) (*Instruction, error) {
@@ -48,7 +48,25 @@ func parseInstruction(line string) (*Instruction, error) {
 	}, nil
 }
 
-func Initialize(codePath string) (*Program, error) {
+func transformCode(original []Instruction, offset int) ([]Instruction, int) {
+	transformed := make([]Instruction, len(original))
+	copy(transformed, original)
+
+	for i := offset; i < len(original); i++ {
+		if transformed[i].Operation == "jmp" {
+			transformed[i].Operation = "nop"
+			return transformed, i + 1
+		}
+		if transformed[i].Operation == "nop" {
+			transformed[i].Operation = "jmp"
+			return transformed, i + 1
+		}
+	}
+
+	return transformed, len(transformed)
+}
+
+func parseCode(codePath string) ([]Instruction, error) {
 	data, err := ioutil.ReadFile(codePath)
 	if err != nil {
 		return nil, err
@@ -62,17 +80,22 @@ func Initialize(codePath string) (*Program, error) {
 		}
 		lines = append(lines, *line)
 	}
+	return lines, nil
+}
+
+func Initialize(code []Instruction) (*Program, error) {
+
 	return &Program{
-		Code:         lines,
-		LastLine:     len(raw),
-		VisitedLines: map[int]bool{},
+		Code:              code,
+		VisitedLines:      map[int]bool{},
+		LastManipulatedOp: -1,
 	}, nil
 }
 
-func (p *Program) processNextLine() bool {
+func (p *Program) processNextLine() (bool, error) {
 	if _, ok := p.VisitedLines[p.CurrentLine]; ok {
 		log.Println("detected infinite loop - acc val is:", p.Acc)
-		return true
+		return false, errors.New("detected infinite loop")
 	}
 	p.VisitedLines[p.CurrentLine] = true
 	ins := p.Code[p.CurrentLine]
@@ -89,15 +112,19 @@ func (p *Program) processNextLine() bool {
 		break
 	}
 	log.Println("processed line - values are - acc:", p.Acc, "next line is:", p.CurrentLine)
-	return p.CurrentLine == p.LastLine
+	return p.CurrentLine == len(p.Code), nil
 }
 
-func (p *Program) run() {
+func (p *Program) run() error {
 	for {
-		finished := p.processNextLine()
+		finished, err := p.processNextLine()
+		if err != nil {
+			return err
+		}
 		if finished {
 			log.Println("finished program or detected infinite loop")
 			break
 		}
 	}
+	return nil
 }
