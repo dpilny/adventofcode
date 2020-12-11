@@ -1,4 +1,4 @@
-package halter
+package day8
 
 import (
 	"errors"
