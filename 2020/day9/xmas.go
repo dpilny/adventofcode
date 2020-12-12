@@ -10,11 +10,6 @@ import (
 type Xmas struct {
 	PreambleLength int
 	Data           []int64
-	// contains possible sums from current preamble window as keys in map
-	// values contains a slice of indices which contribute to the sum
-	sums map[int64][]sumOf
-
-	failedNumber int64
 }
 
 type sumOf struct {
@@ -26,7 +21,6 @@ func Get(preambleLength int, data []int64) Xmas {
 	return Xmas{
 		PreambleLength: preambleLength,
 		Data:           data,
-		sums:           map[int64][]sumOf{},
 	}
 }
 
@@ -117,49 +111,4 @@ func (x Xmas) findInvalid() (int64, int) {
 
 	}
 	return -1, -1
-}
-
-func (x Xmas) updateSums(index int) {
-	startIndex := index - x.PreambleLength
-	if startIndex < 0 {
-		return
-	}
-	//for k := startIndex; k < index-1; k++ {
-	//	for j := k + 1; j < index; j++ {
-	//		sum := x.Data[k] + x.Data[j]
-	//		val, ok := x.sums[sum]
-	//		if ok {
-	//			x.sums[sum] = append(val, sumOf{
-	//				a: k,
-	//				b: j,
-	//			})
-	//		} else {
-	//			x.sums[sum] = []sumOf{{
-	//				a: k,
-	//				b: j,
-	//			}}
-	//		}
-	//	}
-	//}
-	removeIndex := startIndex - 1
-	if removeIndex >= 0 {
-		// remove all sums which were calculated by the value from the old index
-		for sum, sumOfs := range x.sums {
-			i := 0
-			//for _, sumOf := range sumOfs {
-			//if sumOf.a == removeIndex || sumOf.b == removeIndex {
-			//	copy and increment index
-			//sumOfs[i] = sumOf
-			//i++
-			//}
-			//}
-			// Prevent memory leak by erasing truncated values
-			sumOfs = sumOfs[:i]
-			if len(sumOfs) == 0 {
-				delete(x.sums, sum)
-			} else {
-				x.sums[sum] = sumOfs
-			}
-		}
-	}
 }
