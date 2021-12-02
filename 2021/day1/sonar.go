@@ -26,25 +26,22 @@ func parseMeasurements(path string) ([]int, error) {
 
 func countIncreases(measurements []int) int {
 	count := 0
-
 	prevValue := math.MaxInt64
-
 	for _, measurement := range measurements {
 		if measurement > prevValue {
 			count++
 		}
 		prevValue = measurement
 	}
-
 	return count
 }
 
 func getSlidingWindows(measurements []int) []int {
 	var windowSums []int
 	for i := 3; i <= len(measurements); i++ {
-		possibleWindow := measurements[i-3 : i]
+		window := measurements[i-3 : i]
 		sum := 0
-		for _, measurement := range possibleWindow {
+		for _, measurement := range window {
 			sum += measurement
 		}
 		windowSums = append(windowSums, sum)
